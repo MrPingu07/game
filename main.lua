@@ -40,9 +40,22 @@ function love.update(dt)
 
         CollisionModule.bulletsVsRunners(bullets, runners)
 
-        local levelW = #MapModule.current.rows[1] * MapModule.current.tileLength
-        local levelH = #MapModule.current.rows * MapModule.current.tileLength
-        CameraModule.update(cam, player.x, player.y, levelW, levelH, dt)
+        for i = #runners, 1, -1 do
+            if runners[i].isDead then
+                table.remove(runners, i)
+                end
+                end
+
+                local playerHit =
+                CollisionModule.playerVsRunners(player, runners)
+
+                if playerHit then
+                    print("PLAYER HIT")
+                    end
+
+                    local levelW = #MapModule.current.rows[1] * MapModule.current.tileLength
+                local levelH = #MapModule.current.rows * MapModule.current.tileLength
+                CameraModule.update(cam, player.x, player.y, levelW, levelH, dt)
 
 end
 
