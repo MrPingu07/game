@@ -6,7 +6,7 @@ local SPEED = 80
 local TILE_SIZE = 32
 local RAY_LENGTH = TILE_SIZE * 2
 local DETECT_RADIUS = TILE_SIZE * 8 -- Distance to notice the player
-local CHASE_RADIUS = TILE_SIZE * 14 -- Distance willing to pursue before giving up
+local CHASE_RADIUS = TILE_SIZE * 10 -- Distance willing to pursue before giving up
 
 -- Calculates the origin (front-top corner) and destination of the 60-degree ray
 local function getRayEndpoints(r)

@@ -2,7 +2,8 @@ local PlayerModule = require("player")
 local MapModule = require("map")
 local CameraModule = require("camera")
 local BulletModule = require("bullet")
-local RunnerModule = require("entities.runner")
+local RunnerModule = require("entities.enemies.runner")
+local CollisionModule = require("entities.collisions.collision")
 
 local player
 local cam
@@ -37,9 +38,12 @@ function love.update(dt)
         RunnerModule.update(runners[i], dt, MapModule.current.gravity, MapModule, player)
         end
 
+        CollisionModule.bulletsVsRunners(bullets, runners)
+
         local levelW = #MapModule.current.rows[1] * MapModule.current.tileLength
         local levelH = #MapModule.current.rows * MapModule.current.tileLength
         CameraModule.update(cam, player.x, player.y, levelW, levelH, dt)
+
 end
 
 function love.keypressed(key)

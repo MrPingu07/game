@@ -1,0 +1,45 @@
+local Collision = {}
+
+function Collision.circleRect(circle, rect)
+local closestX =
+math.max(rect.x,
+         math.min(circle.x, rect.x + rect.width))
+
+local closestY =
+math.max(rect.y,
+         math.min(circle.y, rect.y + rect.height))
+
+local dx = circle.x - closestX
+local dy = circle.y - closestY
+
+return dx * dx + dy * dy <= circle.radius * circle.radius
+end
+
+function Collision.bulletsVsRunners(bullets, runners)
+for i = 1, #bullets do
+    local bullet = bullets[i]
+
+    if bullet.isActive then
+        for j = 1, #runners do
+            local runner = runners[j]
+
+            if not runner.isDead and
+                Collision.circleRect(bullet, runner) then
+
+                runner.health =
+                runner.health - bullet.damage
+
+                bullet.isActive = false
+
+                if runner.health <= 0 then
+                    runner.isDead = true
+                    end
+
+                    break
+                    end
+                    end
+                    end
+                    end
+                    end
+
+                    return Collision
