@@ -5,8 +5,8 @@ local Runner = {}
 local SPEED = 80
 local TILE_SIZE = 32
 local RAY_LENGTH = TILE_SIZE * 2
-local DETECT_RADIUS = TILE_SIZE * 8 -- Distance to notice the player
-local CHASE_RADIUS = TILE_SIZE * 10 -- Distance willing to pursue before giving up
+local DETECT_RADIUS = TILE_SIZE * 5 -- Distance to notice the player
+local CHASE_RADIUS = TILE_SIZE * 8 -- Distance willing to pursue before giving up
 
 -- Calculates the origin (front-top corner) and destination of the 60-degree ray
 local function getRayEndpoints(r)
@@ -60,9 +60,9 @@ function Runner.create(x, y, facing)
         speed = SPEED,
         health = 100,
         isDead = false,
-        state = "patrol",      -- Finite State Machine initial state
+        state = "patrol",  -- Finite State Machine initial state
         freezeTimer = 0,
-        isOnGround = false     -- Dedicated flag to fix jump physics
+        isOnGround = false -- Dedicated flag to fix jump physics
     }
 end
 
@@ -95,7 +95,7 @@ function Runner.update(r, dt, gravity, mapModule, player)
         end
     elseif r.state == "freeze" then
         if not inDetectRange then
-            r.state = "patrol"                     -- Cancel aggro if player leaves during freeze
+            r.state = "patrol" -- Cancel aggro if player leaves during freeze
         else
             r.freezeTimer = r.freezeTimer - dt
             if r.freezeTimer <= 0 then
@@ -104,7 +104,8 @@ function Runner.update(r, dt, gravity, mapModule, player)
         end
     elseif r.state == "aggro" then
         if not inChaseRange then
-            r.state = "patrol"                                     -- Return to patrol when losing sight of the player entirely
+            r.state =
+            "patrol"           -- Return to patrol when losing sight of the player entirely
         end
     end
 
@@ -193,7 +194,7 @@ function Runner.update(r, dt, gravity, mapModule, player)
 
     -- 6. Vertical movement and collision (Floor and Ceilings)
     r.y = r.y + r.vy * dt
-    r.isOnGround = false                                                                                                                                 -- Reset ground flag every frame
+    r.isOnGround = false -- Reset ground flag every frame
 
     if r.vy > 0 then
         -- Floor collision
@@ -201,7 +202,7 @@ function Runner.update(r, dt, gravity, mapModule, player)
             World.isSolid(r.x + r.width - 1, r.y + r.height, mapModule) then
             r.y = math.floor((r.y + r.height) / tileSize) * tileSize - r.height
             r.vy = 0
-            r.isOnGround = true                                                                                                                                 -- Confirms solid contact with the floor
+            r.isOnGround = true -- Confirms solid contact with the floor
         end
     elseif r.vy < 0 then
         -- Ceiling collision
@@ -217,35 +218,33 @@ function Runner.draw(r)
     if r.isDead then return end
 
     -- Base enemy render
-    love.graphics.setColor(1, 0.2, 0.2)
+    local color
+    if r.state == "patrol" then
+        color = { 0.5, 0.0, 0.5 }
+    elseif r.state == "freeze" then
+        color = { 1.0, 1.0, 0.0 }
+    elseif r.state == "aggro" then
+        color = { 1.0, 0.2, 0.2 }
+    end
+    love.graphics.setColor(color)
     love.graphics.rectangle("fill", r.x, r.y, r.width, r.height)
+
+    local centerX = r.x + r.width / 2
+    local centerY = r.y + r.height / 2
 
     ---------------------------------------------------------
     -- DEBUG SECTION
     ---------------------------------------------------------
     local showDebug = true
     if showDebug then
-        local centerX = r.x + r.width / 2
-        local centerY = r.y + r.height / 2
+        love.graphics.setColor(1, 1, 0, 0.3)
+        love.graphics.circle("line", centerX, centerY, DETECT_RADIUS)
 
-        -- 1. Detection and Chase radius indicators
-        if r.state == "patrol" then
-            love.graphics.setColor(1, 1, 0, 0.15)
-            love.graphics.circle("line", centerX, centerY, DETECT_RADIUS)
-        elseif r.state == "freeze" then
-            love.graphics.setColor(0, 0, 1, 0.5)
-            love.graphics.circle("line", centerX, centerY, DETECT_RADIUS)
-        elseif r.state == "aggro" then
-            -- Expand the circle to show the full chase range
-            love.graphics.setColor(1, 0, 0, 0.5)
-            love.graphics.circle("line", centerX, centerY, CHASE_RADIUS)
-        end
-
-        -- 2. 60-degree ray indicator projecting from top-front corner
+        -- 60-degree ray indicator projecting from top-front corner
         local oX, oY, eX, eY = getRayEndpoints(r)
         love.graphics.setColor(0, 1, 0, 0.8)
         love.graphics.line(oX, oY, eX, eY)
-        love.graphics.circle("fill", eX, eY, 3)                                                                                                                                                                 -- Endpoint check
+        love.graphics.circle("fill", eX, eY, 3) -- Endpoint check
     end
     ---------------------------------------------------------
 end

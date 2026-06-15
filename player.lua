@@ -24,6 +24,11 @@ function Player.create(x, y)
         inventory = { WeaponModule.create("semiauto"), WeaponModule.create("shotgun") },
         currentSlot = 1,
         spacePressed = false,
+        isCrouching = false,
+        fullHeight = 32,
+        crouchHeight = 18,
+        fullWidth = 32,
+        crouchWidth = 40
     }
 end
 
@@ -90,20 +95,27 @@ function Player.update(instance, dt, gravity, mapModule, bulletPool)
                 and instance.x + instance.width
                 or instance.x
             local origin = { x = muzzleX, y = instance.y + instance.height * 0.5 }
-            w.fireFunc(origin, instance.aimDir, bulletPool, BulletModule.spawn)
+            w.fireFunc(origin, instance.aimDir, bulletPool, function(pool, x, y, vx, vy, r, d, l, cr, cg, cb)
+                BulletModule.spawn(pool, x, y, vx, vy, r, d, l, cr, cg, cb, true)
+            end)
             w.cooldown = w.fireRate
         end
         instance.spacePressed = false
     end
 
-    if love.keyboard.isDown("s") then
-        instance.height = 48 * 0.75
-        instance.x = instance.x - 16 * 0.25
-        instance.y = instance.y + 8
-    elseif instance.height == 48 * 0.75 then
-        instance.height = 48
-        instance.x = instance.x + 16 * 0.25
-        instance.y = instance.y - 8
+    local wasCrouching = instance.isCrouching
+    instance.isCrouching = love.keyboard.isDown("s") and instance.isGrounded
+
+    if instance.isCrouching and not wasCrouching then
+        instance.y = instance.y + (instance.fullHeight - instance.crouchHeight)
+        instance.height = instance.crouchHeight
+        instance.x = instance.x + (instance.fullWidth - instance.crouchWidth) / 2
+        instance.width = instance.crouchWidth
+    elseif not instance.isCrouching and wasCrouching then
+        instance.y = instance.y - (instance.fullHeight - instance.crouchHeight)
+        instance.height = instance.fullHeight
+        instance.x = instance.x - (instance.fullWidth - instance.crouchWidth) / 2
+        instance.width = instance.fullWidth
     end
 end
 

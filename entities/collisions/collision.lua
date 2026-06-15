@@ -19,7 +19,7 @@ function Collision.bulletsVsRunners(bullets, runners)
     for i = 1, #bullets do
         local bullet = bullets[i]
 
-        if bullet.isActive then
+        if bullet.isActive and bullet.fromPlayer then
             for j = 1, #runners do
                 local runner = runners[j]
 
@@ -59,6 +59,26 @@ function Collision.playerVsRunners(player, runners)
     end
 
     return false
+end
+
+function Collision.bulletsVsGunners(bullets, gunners)
+    for i = 1, #bullets do
+        local bullet = bullets[i]
+        if bullet.isActive and bullet.fromPlayer then
+            for j = 1, #gunners do
+                local gunner = gunners[j]
+                if not gunner.isDead and
+                    Collision.circleRect(bullet, gunner) then
+                    gunner.health = gunner.health - bullet.damage
+                    bullet.isActive = false
+                    if gunner.health <= 0 then
+                        gunner.isDead = true
+                    end
+                    break
+                end
+            end
+        end
+    end
 end
 
 return Collision

@@ -56,6 +56,11 @@ Si una respuesta requiere demasiados cambios:
 * Dividir en varios pasos.
 * Mantener cada paso compilable.
 
+## Nota sobre Kate
+
+Kate mezcla código nuevo con viejo al pegar snippets sobre archivos existentes.
+Solución: siempre dar el archivo completo y borrar el contenido antes de pegar.
+
 ## Objetivo
 
 Nunca quedar atrapados en un estado donde el juego no corre.
@@ -70,26 +75,27 @@ Implementado:
 
 * Movimiento horizontal
 * Salto
-* Disparo
-* Inventario básico
-* Sistema de armas
+* Agacharse con squash (altura y ancho reducidos, centrado)
+* Disparo con muzzle basado en facing
+* Press vs Hold para semiauto vs automático (spacePressed flag)
+* Inventario de 2 slots, swap con Q
+* Sistema de armas polimórfico
 * Health
-* Damage
-* Damage Cooldown
-* Death State
-* isDead
+* Damage por contacto con cooldown (0.5s)
+* Death State (isDead)
 * HUD HP
 * YOU DIED
 
 Comportamiento actual:
 
-* El jugador recibe daño por contacto.
-* El daño posee cooldown.
-* Al llegar a 0 HP:
+* El jugador recibe daño por contacto con enemigos.
+* Al llegar a 0 HP: isDead = true, controles bloqueados, aparece YOU DIED.
 
-  * isDead = true
-  * se muestran controles bloqueados
-  * aparece YOU DIED
+Campos relevantes:
+
+* fullHeight = 32, crouchHeight = 24
+* fullWidth = 32, crouchWidth = 24
+* isCrouching flag
 
 ---
 
@@ -97,105 +103,127 @@ Comportamiento actual:
 
 Implementado:
 
-* Spawn desde mapa
-* Movimiento
-* Detección de jugador
-* Health
-* Damage recibido
-* Death
-* Cleanup automático
+* Spawn desde token R en mapa
+* Movimiento con gravedad
+* Detección de bordes (raycast de 60 grados)
+* FSM: patrol, freeze (0.5s), aggro
+* Detección de jugador por radio
+* Chase con salto hacia plataformas superiores
+* Health (muere en 3 impactos de semiauto)
+* Damage recibido (solo balas fromPlayer)
+* Death y cleanup automático
+* Color por estado: patrol=púrpura, freeze=amarillo, aggro=rojo
+* Radio de detección debug en amarillo fijo
 
-Configuración actual:
+---
 
-* Muere en 3 impactos.
+## Gunner
+
+Implementado:
+
+* Spawn desde token G en mapa
+* Movimiento con gravedad
+* FSM: patrol, freeze (0.5s), aggro_cooldown (3s), aggro_burst
+* Mantiene distancia preferida del jugador (PREFERRED_DIST)
+* Apunta directo al jugador con vector normalizado durante burst
+* Dispara ráfaga de 3 balas con 0.25s entre cada una
+* Cooldown de 3s entre ráfagas
+* Balas propias NO se dañan a sí mismo (fromPlayer flag)
+* Health = 60
+* Damage recibido (solo balas fromPlayer)
+* Death y cleanup automático
+* Color por estado: patrol=marrón, freeze=amarillo, aggro=naranja
+* Radio de detección debug en amarillo fijo
+
+Pendiente:
+
+* Facing para sprites
 
 ---
 
 ## Colisiones
 
-Archivo:
-
-entities/collisions/collision.lua
+Archivo: entities/collisions/collision.lua
 
 Implementado:
 
-### Bullet ↔ Runner
+* Bullet vs Runner (solo fromPlayer=true)
+* Bullet vs Gunner (solo fromPlayer=true)
+* Runner vs Player (AABB, aplica daño con cooldown)
+* Gunner vs Player: pendiente
 
-* Detecta impacto
-* Aplica daño
-* Destruye bala
-* Elimina runner muerto
+---
 
-### Runner ↔ Player
+## Balas
 
-* Detecta contacto
-* Aplica daño
-* Respeta damage cooldown
+Pool de 100 slots en bullet.lua.
+Campo fromPlayer distingue origen para evitar friendly fire entre enemigos.
+Balas del jugador: fromPlayer=true via wrapper en player.lua.
+Balas de enemigos: fromPlayer=false (default).
 
 ---
 
 ## HUD
 
-Archivo:
-
-ui/hud.lua
+Archivo: ui/hud.lua
 
 Implementado:
 
 * HP centrado abajo
-* YOU DIED centrado
+* YOU DIED centrado en rojo
 
 ---
 
 ## Armas
 
-Existentes:
+Todas funcionales:
 
-* Semiauto
-* Shotgun
-* Fullauto
-* Flamethrower
+* Semiauto: press, 34 dmg, amarillo
+* Shotgun: press, 5 pellets, 15 dmg c/u, dorado
+* Fullauto: hold, 10 dmg, naranja
+* Flamethrower: hold, 5 dmg, rojo, tamaño aleatorio
 
-Estado:
+---
 
-* Semiauto funcional
-* Shotgun funcional
-* Fullauto funcional
-* Flamethrower pendiente de completar
+## Mapa
+
+Tokens activos: #, P, R, G
+Parser: gmatch("[^\n]+") sobre string multilínea [[]]
+Grid cacheado en Map.current.rows para isSolid O(1)
+enemySpawns retornado por Map.load para spawn en love.load
 
 ---
 
 # Estructura actual
 
+```
 game/
-
 ├── entities/
-│   ├── enemy.lua
+│   ├── enemy.lua (vacío, refactor diferido)
 │   ├── enemies/
 │   │   ├── runner.lua
 │   │   ├── gunner.lua
-│   │   └── mosquito.lua
+│   │   └── mosquito.lua (vacío)
 │   └── collisions/
 │       └── collision.lua
-│
 ├── ui/
 │   └── hud.lua
-│
 ├── weapons/
 │   ├── semiauto.lua
 │   ├── shotgun.lua
 │   ├── fullauto.lua
 │   └── flamethrower.lua
-│
 ├── levels/
 │   └── level1.lua
-│
 ├── player.lua
 ├── bullet.lua
 ├── map.lua
 ├── world.lua
 ├── camera.lua
+├── weapon.lua
+├── conf.lua
 └── main.lua
+```
 
 ---
 
@@ -209,260 +237,90 @@ Nada actualmente.
 
 # Pendiente
 
-## Bug heredado
+## Enemigos
 
-### win=kill_all
+### Mosquito
 
-Proyecto original:
+* Ignora gravedad e ignora geometría
+* Patrulla
+* Detecta jugador
+* Ataque errático al detectar
+* Puede recibir daño y morir
 
-La condición se cumple.
-
-El tile cambia de color.
-
-La transición de nivel no ocurre.
-
-Estado del port:
-
-No implementado.
+Estado: No implementado.
 
 ---
 
-# Enemigos
+## Colisiones pendientes
 
-## Gunner
-
-Prioridad actual.
-
-Descripción original:
-
-Variante del Runner.
-
-Características:
-
-* Mantiene distancia.
-* Dispara ráfagas.
-* Utiliza el sistema de balas existente.
-* Puede recibir daño.
-* Puede morir.
-
-Estado:
-
-No implementado.
+* Gunner vs Player (contacto, daño)
+* Verificar tunneling en player, runner, drops
+* Verificar colisiones laterales (tiles atravesables lateralmente)
 
 ---
 
-## Mosquito
-
-Descripción original:
-
-Enemigo volador.
-
-Características:
-
-* Ignora gravedad.
-* Ignora geometría.
-* Patrulla.
-* Detecta jugador.
-* Ataque errático.
-* Puede recibir daño.
-* Puede morir.
-
-Estado:
-
-No implementado.
-
----
-
-# Física y colisiones
-
-## Tunneling
-
-Detectado en proyecto original.
-
-Afecta:
-
-* Player
-* Runner
-* Drops
-
-Estado:
-
-Pendiente de verificar en el port.
-
----
-
-## Colisiones laterales
-
-Problema detectado en el proyecto original.
-
-Los tiles sólidos son atravesables lateralmente.
-
-Estado:
-
-Pendiente de verificar en el port.
-
----
-
-# Sistema de Drops
-
-Pendiente.
-
-Características esperadas:
+## Sistema de Drops
 
 * Física
-* Spawn
+* Spawn al morir enemigo
 * Recolección
 * Probabilidad dinámica
 
-Problema heredado:
+---
 
-Escalado incorrecto con TILE_SIZE altos.
+## Victory Conditions
+
+* kill_all: pendiente
+* collect_keys:N: pendiente
+* break_all_boxes: pendiente
+* reach_exit: pendiente
+* kill_boss: pendiente
+* Condiciones AND/OR: pendiente
 
 ---
 
-# Victory Conditions
+## Exit Tile
 
-## kill_all
-
-Eliminar todos los enemigos.
-
-Estado:
-
-Parcialmente iniciado.
+Token E en mapa, transición de nivel condicional.
 
 ---
 
-## collect_keys:N
+## Scene System
 
-Pendiente.
-
----
-
-## break_all_boxes
-
-Pendiente.
+* Scene Manager
+* Menú principal (Main, Settings, Resolution)
 
 ---
 
-## reach_exit
-
-Pendiente.
-
----
-
-## kill_boss
-
-Pendiente.
-
----
-
-## Condiciones AND/OR
-
-Pendiente.
-
-Ejemplos:
-
-win=(kill_all AND reach_exit)
-
-win=(collect_keys OR kill_boss)
-
----
-
-# Scene System
-
-## Scene Manager
-
-Proyecto original:
-
-Implementación básica.
-
-Pendiente:
-
-* Registro por ID
-* Stack de escenas
-* Transiciones
-
-Estado:
-
-No implementado.
-
----
-
-## Menú Principal
-
-Proyecto original:
-
-* Main
-* Settings
-* Resolution
-
-Estado:
-
-No implementado.
-
----
-
-# Tilesets
-
-Objetivo:
+## Tilesets
 
 Sustituir tiles coloreados por sprites.
-
-Ubicación prevista:
-
-assets/tilesets/<name>/tileset.png
-
-Estado:
-
-No implementado.
+Ubicación prevista: assets/tilesets/<name>/tileset.png
 
 ---
 
-# Plataformas especiales
+## Plataformas especiales
 
-## Plataforma rompible
-
-Token:
-
-X
-
-Estados:
-
-IDLE
-→ SHAKING
-→ BROKEN
-
-Estado:
-
-No implementado.
+* Plataforma rompible: token X, estados IDLE > SHAKING > BROKEN
 
 ---
 
-# Feedback Visual
+## Feedback Visual
 
-## Player
-
-Pendiente:
-
+Player:
 * Flash al recibir daño
 * Knockback
 * Sonidos
 
-## Enemigos
-
-Pendiente:
-
+Enemigos:
 * Flash al recibir daño
 * Animaciones de muerte
 * Sonidos
 
 ---
 
-# HUD Futuro
+## HUD Futuro
 
-Pendiente:
-
-* Munición
 * Arma actual
 * Enemigos restantes
 * Objetivos
@@ -470,15 +328,7 @@ Pendiente:
 
 ---
 
-# Game Over
-
-Implementado:
-
-* Death State
-* Controles bloqueados
-* YOU DIED
-
-Pendiente:
+## Game Over
 
 * Respawn
 * Checkpoints
@@ -489,45 +339,29 @@ Pendiente:
 
 # Refactors diferidos
 
-NO realizar antes de tener:
+NO realizar antes de tener Mosquito funcionando.
 
-* Runner
-* Gunner
-* Mosquito
-
-funcionando.
-
-## enemy.lua
-
-Posible extracción futura:
-
-* health
-* isDead
-* takeDamage
-
-Solo si existe duplicación real.
+enemy.lua: posible extracción de health, isDead, takeDamage si hay duplicación real.
 
 ---
 
 # Próxima tarea recomendada
 
-1. Gunner
+1. Gunner vs Player (colisión de contacto)
 2. Mosquito
-3. Victory Conditions
-4. Exit Tile
-5. Scene Manager
-6. Menús
+3. Victory Conditions + Exit Tile
+4. Scene Manager
+5. Menús
 
 ---
 
 # Resumen rápido para un nuevo chat
 
-Estado actual:
-
 * El juego corre.
-* El jugador puede caminar, saltar y disparar.
-* Los runners reciben daño y mueren.
-* El jugador recibe daño y puede morir.
-* Existe HUD funcional.
-* Existe sistema de colisiones funcional.
-* El siguiente objetivo importante es implementar Gunner.
+* El jugador camina, salta, se agacha y dispara.
+* 4 armas funcionales con sistema polimórfico.
+* Runner funcional con FSM completa.
+* Gunner funcional con FSM, mantiene distancia, dispara ráfagas apuntadas al jugador.
+* Sistema de colisiones con fromPlayer flag para evitar friendly fire.
+* HUD funcional.
+* Siguiente objetivo: colisión Gunner vs Player, luego Mosquito.

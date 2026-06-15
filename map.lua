@@ -6,27 +6,27 @@ function Map.load(levelPath)
     local tileSize = Map.current.tileLength
     local spawnX, spawnY = 100, 100
     local enemySpawns = {}
-
     Map.current.rows = {}
     for rowString in Map.current.grid:gmatch("[^\n]+") do
         Map.current.rows[#Map.current.rows + 1] = rowString
-
-        -- Escaneamos la fila entera posición por posición
         for colIdx = 1, #rowString do
             local char = rowString:sub(colIdx, colIdx)
+            local ex = (colIdx - 1) * tileSize
+            local ey = (#Map.current.rows - 1) * tileSize
             if char == "P" then
-                spawnX = (colIdx - 1) * tileSize
-                spawnY = (#Map.current.rows - 1) * tileSize
+                spawnX = ex
+                spawnY = ey
             elseif char == "R" then
-                table.insert(enemySpawns, {
-                    type = "runner",
-                    x = (colIdx - 1) * tileSize,
-                    y = (#Map.current.rows - 1) * tileSize
-                })
+                table.insert(enemySpawns, { type = "runner", x = ex, y = ey })
+            elseif char == "G" then
+                table.insert(enemySpawns, { type = "gunner", x = ex, y = ey })
             end
         end
     end
-
+    print("Total enemySpawns:", #enemySpawns)
+    for i, e in ipairs(enemySpawns) do
+        print(i, e.type, e.x, e.y)
+    end
     return spawnX, spawnY, enemySpawns
 end
 

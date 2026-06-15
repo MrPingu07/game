@@ -4,9 +4,11 @@
     },
     "diagnostics": {
         "globals": ["love",
-            "Story"]
+            "Story",
+            "Map"]
     },
     "diagnostics.disable": [
-        "redefined-local"
+        "redefined-local",
+        "unused-local"
     ]
 }
