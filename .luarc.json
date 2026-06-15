@@ -3,6 +3,10 @@
         "version": "Lua 5.1"
     },
     "diagnostics": {
-        "globals": ["love"]
-    }
+        "globals": ["love",
+            "Story"]
+    },
+    "diagnostics.disable": [
+        "redefined-local"
+    ]
 }
