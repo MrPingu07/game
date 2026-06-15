@@ -7,10 +7,15 @@ function Player.create(x, y)
     return {
         x = x,
         y = y,
-        width = 32,
-        height = 48,
         vx = 0,
         vy = 0,
+
+        health = 100,
+        damageCooldown = 0,
+        isDead = false,
+
+        width = 32,
+        height = 32,
         speed = 200,
         jumpForce = -400,
         isGrounded = false,
@@ -23,6 +28,12 @@ function Player.create(x, y)
 end
 
 function Player.update(instance, dt, gravity, mapModule, bulletPool)
+    if instance.isDead then
+        return
+    end
+
+    instance.damageCooldown =
+        math.max(0, instance.damageCooldown - dt)
     instance.vy = instance.vy + gravity * dt
 
     instance.vx = 0
@@ -112,6 +123,29 @@ end
 function Player.draw(instance)
     love.graphics.setColor(1, 1, 1)
     love.graphics.rectangle("fill", instance.x, instance.y, instance.width, instance.height)
+end
+
+function Player.takeDamage(player, amount)
+    if player.isDead then
+        return
+    end
+
+    if player.damageCooldown > 0 then
+        return
+    end
+
+    player.health = player.health - amount
+    player.damageCooldown = 0.5
+
+    if player.health < 0 then
+        player.health = 0
+    end
+
+    if player.health == 0 then
+        player.isDead = true
+    end
+
+    print("PLAYER HP:", player.health)
 end
 
 return Player

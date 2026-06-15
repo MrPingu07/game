@@ -4,6 +4,7 @@ local CameraModule = require("camera")
 local BulletModule = require("bullet")
 local RunnerModule = require("entities.enemies.runner")
 local CollisionModule = require("entities.collisions.collision")
+local HUDModule = require("ui.hud")
 
 local player
 local cam
@@ -36,27 +37,26 @@ function love.update(dt)
 
     for i = 1, #runners do
         RunnerModule.update(runners[i], dt, MapModule.current.gravity, MapModule, player)
+    end
+
+    CollisionModule.bulletsVsRunners(bullets, runners)
+
+    for i = #runners, 1, -1 do
+        if runners[i].isDead then
+            table.remove(runners, i)
+        end
+    end
+
+    local playerHit =
+    CollisionModule.playerVsRunners(player, runners)
+
+    if playerHit then
+        PlayerModule.takeDamage(player, 1)
         end
 
-        CollisionModule.bulletsVsRunners(bullets, runners)
-
-        for i = #runners, 1, -1 do
-            if runners[i].isDead then
-                table.remove(runners, i)
-                end
-                end
-
-                local playerHit =
-                CollisionModule.playerVsRunners(player, runners)
-
-                if playerHit then
-                    print("PLAYER HIT")
-                    end
-
-                    local levelW = #MapModule.current.rows[1] * MapModule.current.tileLength
-                local levelH = #MapModule.current.rows * MapModule.current.tileLength
-                CameraModule.update(cam, player.x, player.y, levelW, levelH, dt)
-
+    local levelW = #MapModule.current.rows[1] * MapModule.current.tileLength
+    local levelH = #MapModule.current.rows * MapModule.current.tileLength
+    CameraModule.update(cam, player.x, player.y, levelW, levelH, dt)
 end
 
 function love.keypressed(key)
@@ -75,7 +75,9 @@ function love.draw()
 
     for i = 1, #runners do
         RunnerModule.draw(runners[i])
-    end
+        end
 
-    CameraModule.release()
-end
+        CameraModule.release()
+
+        HUDModule.draw(player)
+        end
